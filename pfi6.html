@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanjina's Assignment Tracker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #FAF3E0;
+      color: #3B3B3B;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #B5D3C3;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    header img {
+      max-height: 100px;
+      margin-top: 10px;
+    }
+    #assignment-section {
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      text-align: center;
+    }
+    .assignment {
+      background-color: #FAF3E0;
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    .assignment-title {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .assignment a {
+      margin-top: 5px;
+      color: #1E6F5C;
+      text-decoration: none;
+    }
+    .assignment a:hover {
+      text-decoration: underline;
+    }
+    .admin-controls button {
+      margin: 5px;
+      background-color: #B5D3C3;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .admin-controls button:hover {
+      background-color: #98C1AC;
+    }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background-color: #FAF3E0;
+      font-size: 0.9em;
+      color: #3B3B3B;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #add-btn, #admin-btn, #exit-admin-btn {
+      background-color: #B5D3C3;
+      border: none;
+      cursor: pointer;
+    }
+    #add-btn:hover, #admin-btn:hover, #exit-admin-btn:hover {
+      background-color: #98C1AC;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Sanjina's Assignments 🐾<br>
+    <img src="https://upload.wikimedia.org/wikipedia/en/5/53/Snoopy_Peanuts.png" alt="Snoopy" />
+  </header>
+
+  <div id="assignment-section">
+    <button id="admin-btn">Enter Admin Mode</button>
+    <button id="exit-admin-btn" style="display: none;">Exit Admin Mode</button><br>
+    <div id="admin-form" style="display: none;">
+      <input type="text" id="assignment-input" placeholder="Assignment name" />
+      <input type="date" id="due-date-input" />
+      <input type="url" id="link-input" placeholder="Assignment URL" />
+      <button id="add-btn">Add Assignment</button>
+    </div>
+
+    <div id="assignments"></div>
+  </div>
+
+  <footer>© 2025 Sanjina. All rights reserved. Life is good.</footer>
+
+  <script>
+    const password = "starsandsaturn";
+    let isAdmin = false;
+
+    const assignmentInput = document.getElementById("assignment-input");
+    const dueDateInput = document.getElementById("due-date-input");
+    const linkInput = document.getElementById("link-input");
+    const assignmentsDiv = document.getElementById("assignments");
+    const adminBtn = document.getElementById("admin-btn");
+    const exitAdminBtn = document.getElementById("exit-admin-btn");
+    const adminForm = document.getElementById("admin-form");
+
+    async function loadAssignments() {
+      const response = await fetch('https://api.npoint.io/7c19cf4022061ea268b0');
+      return await response.json();
+    }
+
+    async function saveAssignments(assignments) {
+      await fetch('https://api.npoint.io/7c19cf4022061ea268b0', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignments)
+      });
+    }
+
+    let savedAssignments = [];
+
+    async function initialize() {
+      savedAssignments = await loadAssignments();
+      renderAssignments(savedAssignments);
+    }
+
+    document.getElementById("add-btn").onclick = async () => {
+      const name = assignmentInput.value.trim();
+      const due = dueDateInput.value;
+      const url = linkInput.value.trim();
+      if (!name || !due || !url) return;
+      const newAssignment = { name, due, url };
+      savedAssignments.push(newAssignment);
+      await saveAssignments(savedAssignments);
+      renderAssignments(savedAssignments);
+      assignmentInput.value = "";
+      dueDateInput.value = "";
+      linkInput.value = "";
+    };
+
+    function renderAssignments(list) {
+      assignmentsDiv.innerHTML = "";
+      list.forEach((a, index) => {
+        const div = document.createElement("div");
+        div.className = "assignment";
+
+        const title = document.createElement("div");
+        title.className = "assignment-title";
+        title.textContent = `${a.name} (Due: ${a.due})`;
+
+        const link = document.createElement("a");
+        link.href = a.url;
+        link.textContent = "Download";
+        link.target = "_blank";
+
+        div.appendChild(title);
+        div.appendChild(link);
+
+        if (isAdmin) {
+          const adminDiv = document.createElement("div");
+          adminDiv.className = "admin-controls";
+
+          const renameBtn = document.createElement("button");
+          renameBtn.textContent = "Rename";
+          renameBtn.onclick = async () => {
+            const newName = prompt("Rename assignment:", a.name);
+            if (newName) {
+              a.name = newName;
+              await saveAssignments(savedAssignments);
+              renderAssignments(savedAssignments);
+            }
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "Delete";
+          deleteBtn.onclick = async () => {
+            if (confirm("Delete this assignment?")) {
+              savedAssignments.splice(index, 1);
+              await saveAssignments(savedAssignments);
+              renderAssignments(savedAssignments);
+            }
+          };
+
+          adminDiv.appendChild(renameBtn);
+          adminDiv.appendChild(deleteBtn);
+          div.appendChild(adminDiv);
+        }
+
+        assignmentsDiv.appendChild(div);
+      });
+    }
+
+    adminBtn.onclick = () => {
+      const input = prompt("Enter admin password:");
+      if (input === password) {
+        isAdmin = true;
+        adminForm.style.display = "block";
+        adminBtn.style.display = "none";
+        exitAdminBtn.style.display = "inline-block";
+        renderAssignments(savedAssignments);
+      }
+    };
+
+    exitAdminBtn.onclick = () => {
+      isAdmin = false;
+      adminForm.style.display = "none";
+      adminBtn.style.display = "inline-block";
+      exitAdminBtn.style.display = "none";
+      renderAssignments(savedAssignments);
+    };
+
+    initialize();
+  </script>
+</body>
+</html>
+
+
